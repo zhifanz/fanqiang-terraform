@@ -15,8 +15,6 @@ provider "aws" {
   region = var.proxy_region
 }
 provider "alicloud" {
-  access_key = "LTAI5tJTbejyNDqS2UbXbvYB"
-  secret_key = "dwLZufoJikoH80Z7Ip4BrGZbZE373J"
   region = var.tunnel_region
 }
 
