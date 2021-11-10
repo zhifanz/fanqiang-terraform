@@ -40,7 +40,7 @@ def handler(event, context):
         endpoint = extract_endpoint(log_message)
         if endpoint:
             table.put_item(Item={
-                'name': endpoint,
+                'domainName': endpoint,
                 'lastAccessTimestamp': log_event['timestamp'],
                 'requireProxy': True
             })

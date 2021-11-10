@@ -1,31 +1,32 @@
 variable "ping_service" {
   type = object({
-    app_name = string
     service_name = string
     function_name = string
     ram_role_name = string
     timeout = number
   })
-  default = {
-    app_name = "fanqiang_ping_client"
-    service_name = "fanqiang"
-    function_name = "ping"
-    ram_role_name = "FangqiangFcInvokeAccessRole"
-    timeout = 20
-  }
 }
-variable "log_process_service_name" {
-  type = string
-  default = "fanqiang-process-shadowsocks-logs"
-}
-variable "log_filter_name" {
-  type = string
-  default = "fanqiang-shadowsocks-domains"
-}
-variable "log_group" {
+variable "process_shadowsocks_logs_service" {
   type = object({
     name = string
-    arn = string
-    region = string
+    log_filter_name = string
+    log_group = object({
+      name = string
+      arn = string
+      region = string
+    })
   })
+}
+variable "scan_domains_service" {
+  type = object({
+    name = string
+    rate = string
+    storage = object({
+      bucket = string
+      object_path = string
+    })
+  })
+}
+variable "domain_table_name" {
+  type = string
 }

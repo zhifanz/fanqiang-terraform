@@ -50,6 +50,7 @@ resource "aws_ecs_service" "default" {
     subnets = [aws_subnet.default.id]
     assign_public_ip = true
   }
+  wait_for_steady_state = true
 }
 resource "aws_ecs_task_definition" "default" {
   container_definitions = jsonencode([
@@ -101,17 +102,12 @@ resource "aws_cloudwatch_log_group" "default" {
   retention_in_days = 1
 }
 
-resource "time_sleep" "wait" {
-  depends_on = [aws_ecs_service.default]
-  create_duration = "30s"
-}
-
 data "aws_network_interface" "default" {
   filter {
     name = "subnet-id"
     values = [aws_subnet.default.id]
   }
-  depends_on = [time_sleep.wait]
+  depends_on = [aws_ecs_service.default]
 }
 data "aws_region" "default" {}
 

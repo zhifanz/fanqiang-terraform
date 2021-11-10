@@ -20,7 +20,14 @@ proxies:
     port: ${port}
     cipher: ${cipher}
     password: ${password}
+rule-providers:
+  domestic:
+    type: http
+    behavior: domain
+    path: ./direct_domains.yaml
+    url: ${domestic_rule_provider_url}
 rules:
+  - RULE-SET,domestic,DIRECT
   - DOMAIN-SUFFIX,google.com,auto
   - DOMAIN,ad.com,REJECT
   - GEOIP,CN,DIRECT

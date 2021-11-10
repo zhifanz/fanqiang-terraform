@@ -84,7 +84,7 @@ data "alicloud_regions" "default" {
 }
 
 resource "aws_lambda_function" "process_shadowsocks_logs" {
-  function_name = var.log_process_service_name
+  function_name = var.process_shadowsocks_logs_service.name
   role = aws_iam_role.default.arn
   filename = data.archive_file.process_shadowsocks_logs.output_path
   handler = "process_shadowsocks_logs.handler"
@@ -101,9 +101,69 @@ data "archive_file" "process_shadowsocks_logs" {
   source_file = "${path.module}/scripts/process_shadowsocks_logs.py"
   output_path = "${path.root}/.files/process_shadowsocks_logs.zip"
 }
+resource "aws_lambda_permission" "process_shadowsocks_logs" {
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.process_shadowsocks_logs.function_name
+  principal     = "logs.${var.process_shadowsocks_logs_service.log_group.region}.amazonaws.com"
+  source_arn    = "${var.process_shadowsocks_logs_service.log_group.arn}:*"
+}
+resource "aws_cloudwatch_log_group" "process_shadowsocks_logs" {
+  name = "/aws/lambda/${aws_lambda_function.process_shadowsocks_logs.function_name}"
+  retention_in_days = 1
+}
+resource "aws_cloudwatch_log_subscription_filter" "default" {
+  name = var.process_shadowsocks_logs_service.log_filter_name
+  destination_arn = aws_lambda_function.process_shadowsocks_logs.arn
+  filter_pattern = "DEBUG shadowsocks_service"
+  log_group_name = var.process_shadowsocks_logs_service.log_group.name
+}
+resource "aws_lambda_function" "scan_domains" {
+  function_name = var.scan_domains_service.name
+  role = aws_iam_role.default.arn
+  filename = data.archive_file.scan_domains.output_path
+  handler = "scan_domains.handler"
+  package_type = "Zip"
+  runtime = "python3.9"
+  timeout = 900
+  environment {
+    variables = {
+      DYNAMODB_TABLE = aws_dynamodb_table.default.name
+      PING_SERVICE_ENDPOINT = "https://${alicloud_api_gateway_api.default.api_id}-${alicloud_api_gateway_api.default.fc_service_config[0].region}.alicloudapi.com${alicloud_api_gateway_api.default.request_config[0].path}"
+      BUCKET = var.scan_domains_service.storage.bucket
+      OBJECT_PATH = var.scan_domains_service.storage.object_path
+    }
+  }  
+}
+data "archive_file" "scan_domains" {
+  type = "zip"
+  source_file = "${path.module}/scripts/scan_domains.py"
+  output_path = "${path.root}/.files/scan_domains.zip"
+}
+resource "aws_lambda_permission" "scan_domains" {
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.scan_domains.function_name
+  principal     = "events.amazonaws.com"
+  source_arn    = aws_cloudwatch_event_rule.default.arn
+}
+resource "aws_cloudwatch_log_group" "scan_domains" {
+  name = "/aws/lambda/${aws_lambda_function.scan_domains.function_name}"
+  retention_in_days = 1
+}
+resource "aws_cloudwatch_event_rule" "default" {
+  schedule_expression = "rate(${var.scan_domains_service.rate})"
+  is_enabled = true
+}
+resource "aws_cloudwatch_event_target" "default" {
+  rule = aws_cloudwatch_event_rule.default.id
+  arn = aws_lambda_function.scan_domains.arn
+}
 resource "aws_iam_role" "default" {
   name_prefix = "FanqiangLambdaRole"
-  managed_policy_arns = ["arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess", "arn:aws:iam::aws:policy/CloudWatchLogsFullAccess"]
+  managed_policy_arns = [
+    "arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess",
+    "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+    "arn:aws:iam::aws:policy/AmazonS3FullAccess"
+    ]
   force_detach_policies = true
   assume_role_policy = data.aws_iam_policy_document.default.json
 }
@@ -117,24 +177,12 @@ data "aws_iam_policy_document" "default" {
     }
   }
 }
-resource "aws_lambda_permission" "default" {
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.process_shadowsocks_logs.function_name
-  principal     = "logs.${var.log_group.region}.amazonaws.com"
-  source_arn    = "${var.log_group.arn}:*"
-}
-resource "aws_cloudwatch_log_subscription_filter" "default" {
-  name = var.log_filter_name
-  destination_arn = aws_lambda_function.process_shadowsocks_logs.arn
-  filter_pattern = "DEBUG shadowsocks_service"
-  log_group_name = var.log_group.name
-}
 resource "aws_dynamodb_table" "default" {
-  name = "domains"
+  name = var.domain_table_name
   billing_mode = "PAY_PER_REQUEST"
-  hash_key = "name"
+  hash_key = "domainName"
   attribute {
-    name = "name"
+    name = "domainName"
     type = "S"
   }
 }

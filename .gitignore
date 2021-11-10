@@ -12,6 +12,7 @@ override.tf.json
 terraform.rc
 **/*.zip
 
-# MACOS
+# IDE and OS
 **/.DS_Store
+.vscode
 
