@@ -1,3 +1,4 @@
+# Terraform
 **/.terraform/*
 *.tfstate
 *.tfstate.*
@@ -10,4 +11,7 @@ override.tf.json
 .terraformrc
 terraform.rc
 **/*.zip
+
+# MACOS
 **/.DS_Store
+
