@@ -1,18 +1,18 @@
 variable "ping_service" {
   type = object({
-    service_name = string
-    function_name = string
-    ram_role_name = string
-    timeout = number
+    service_name       = string
+    function_name      = string
+    ram_role_name      = string
+    timeout_in_seconds = string
   })
 }
 variable "process_shadowsocks_logs_service" {
   type = object({
-    name = string
+    name            = string
     log_filter_name = string
     log_group = object({
-      name = string
-      arn = string
+      name   = string
+      arn    = string
       region = string
     })
   })
@@ -22,7 +22,7 @@ variable "scan_domains_service" {
     name = string
     rate = string
     storage = object({
-      bucket = string
+      bucket      = string
       object_path = string
     })
   })

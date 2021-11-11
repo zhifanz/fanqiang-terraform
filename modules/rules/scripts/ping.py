@@ -1,5 +1,6 @@
 import subprocess
 import json
+import os
 from subprocess import TimeoutExpired, CalledProcessError, SubprocessError
 
 
@@ -12,7 +13,7 @@ def handler(event, context):
     status = '400'
     if domain:
         try:
-            rc = subprocess.run(['ping', '-c1', '-q', domain], timeout=30).returncode
+            rc = subprocess.run(['ping', '-c1', '-q', '-W', os.environ['TIMEOUT'], domain]).returncode
             response_body = 'success' if rc == 0 else 'failed'
             status = '200'
         except (TimeoutExpired, CalledProcessError):

@@ -72,7 +72,9 @@ resource "alicloud_fc_function" "default" {
   handler     = "ping.handler"
   memory_size = 128
   runtime     = "python3"
-  timeout     = var.ping_service.timeout
+  environment_variables = {
+    "TIMEOUT" = var.ping_service.timeout_in_seconds
+  }
 }
 data "archive_file" "ping" {
   type        = "zip"

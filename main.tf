@@ -23,8 +23,8 @@ module "proxy" {
   port                 = var.port
   encryption_algorithm = var.encryption_algorithm
   password             = var.password
-  service_name = "shadowsocks"
-  log_group_name = "fanqiang"
+  service_name         = "shadowsocks"
+  log_group_name       = "fanqiang"
 }
 
 module "tunnel" {
@@ -35,24 +35,24 @@ module "tunnel" {
 }
 
 module "rules" {
-  source = "./modules/rules"
+  source            = "./modules/rules"
   domain_table_name = "domains"
   ping_service = {
-    function_name = "ping"
-    ram_role_name = "FangqiangFcInvokeAccessRole"
-    service_name = "fanqiang"
-    timeout = 20
+    function_name      = "ping"
+    ram_role_name      = "FangqiangFcInvokeAccessRole"
+    service_name       = "fanqiang"
+    timeout_in_seconds = var.domain_access_timeout_in_seconds
   }
   process_shadowsocks_logs_service = {
     log_filter_name = "fanqiang-shadowsocks-connection-establish"
-    log_group = module.proxy.log_group
-    name = "fanqiang-process-shadowsocks-logs"
+    log_group       = module.proxy.log_group
+    name            = "fanqiang-process-shadowsocks-logs"
   }
   scan_domains_service = {
     name = "fanqiang-scan-domains"
     rate = "10 minutes"
     storage = {
-      bucket = aws_s3_bucket.default.id
+      bucket      = aws_s3_bucket.default.id
       object_path = aws_s3_bucket_object.clash_domestic_rule_provider.key
     }
   }
@@ -64,22 +64,22 @@ resource "aws_s3_bucket" "default" {
   force_destroy = true
 }
 resource "aws_s3_bucket_object" "clash_domestic_rule_provider" {
-  bucket = aws_s3_bucket.default.id
-  key = "clash/direct_domains.yaml"
-  acl = "public-read"
+  bucket        = aws_s3_bucket.default.id
+  key           = "clash/direct_domains.yaml"
+  acl           = "public-read"
   force_destroy = true
-  content = "payload: []"
+  content       = "payload: []"
 }
 resource "aws_s3_bucket_object" "clash_config" {
-  bucket = aws_s3_bucket.default.id
-  key = "clash/config.yaml"
-  acl = "public-read"
+  bucket        = aws_s3_bucket.default.id
+  key           = "clash/config.yaml"
+  acl           = "public-read"
   force_destroy = true
   content = templatefile("${path.module}/clash-config.yml.tpl", {
-    server = module.tunnel.public_ip
-    port = var.port
-    cipher = var.encryption_algorithm
-    password = var.password
+    server                     = module.tunnel.public_ip
+    port                       = var.port
+    cipher                     = var.encryption_algorithm
+    password                   = var.password
     domestic_rule_provider_url = "https://${aws_s3_bucket.default.bucket_domain_name}/${aws_s3_bucket_object.clash_domestic_rule_provider.key}"
   })
 }
