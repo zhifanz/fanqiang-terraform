@@ -23,7 +23,8 @@ provider "registry.terraform.io/aliyun/alicloud" {
 }
 
 provider "registry.terraform.io/hashicorp/archive" {
-  version = "2.2.0"
+  version     = "2.2.0"
+  constraints = "2.2.0"
   hashes = [
     "h1:2K5LQkuWRS2YN1/YoNaHn9MAzjuTX8Gaqy6i8Mbfv8Y=",
     "zh:06bd875932288f235c16e2237142b493c2c2b6aba0e82e8c85068332a8d2a29e",

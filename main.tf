@@ -8,15 +8,19 @@ terraform {
       source  = "aliyun/alicloud"
       version = "1.134.0"
     }
+    archive = {
+      source  = "hashicorp/archive"
+      version = "2.2.0"
+    }
   }
 }
-
 provider "aws" {
   region = var.proxy_region
 }
 provider "alicloud" {
   region = var.tunnel_region
 }
+provider "archive" {}
 
 module "proxy" {
   source               = "./modules/awsecs"
@@ -26,14 +30,12 @@ module "proxy" {
   service_name         = "shadowsocks"
   log_group_name       = "fanqiang"
 }
-
 module "tunnel" {
   source          = "./modules/tunnel"
   proxy_port      = var.port
   proxy_public_ip = module.proxy.public_ip
   public_key      = var.public_key
 }
-
 module "rules" {
   source            = "./modules/rules"
   domain_table_name = "domains"
@@ -50,7 +52,7 @@ module "rules" {
   }
   scan_domains_service = {
     name = "fanqiang-scan-domains"
-    rate = "10 minutes"
+    rate = "30 minutes"
     storage = {
       bucket      = aws_s3_bucket.default.id
       object_path = aws_s3_bucket_object.clash_domestic_rule_provider.key
