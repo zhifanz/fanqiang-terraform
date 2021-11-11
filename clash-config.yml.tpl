@@ -1,12 +1,13 @@
-port: 7890
-socks-port: 7891
-redir-port: 7892
-tproxy-port: 7893
 mixed-port: 7890
 mode: rule
+tun:
+  enable: true
+  stack: system
+  macOS-auto-route: true
+  macOS-auto-detect-interface: true
 dns:
   enable: true
-  listen: 0.0.0.0:53
+  listen: 0.0.0.0:1053
   enhanced-mode: redir-host
   nameserver:
     - 223.5.5.5
