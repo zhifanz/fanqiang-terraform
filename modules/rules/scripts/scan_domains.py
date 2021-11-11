@@ -14,7 +14,7 @@ def to_yaml_payload(domains):
 def handler(event, context):
     dynamodb = boto3.resource('dynamodb')
     table = dynamodb.Table(os.environ['DYNAMODB_TABLE'])
-    response = table.query(ProjectionExpression='domainName')
+    response = table.scan(ProjectionExpression='domainName')
     white_list = []
 
     for item in response['Items']:
