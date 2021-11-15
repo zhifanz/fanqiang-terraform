@@ -15,13 +15,7 @@ variable "process_shadowsocks_logs_service" {
       arn    = string
       region = string
     })
-  })
-}
-variable "scan_domains_service" {
-  type = object({
-    name = string
-    rate = string
-    storage = object({
+    clash_rule_storage = object({
       bucket      = string
       object_path = string
     })

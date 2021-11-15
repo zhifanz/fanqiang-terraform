@@ -22,13 +22,27 @@ provider "alicloud" {
 }
 provider "archive" {}
 
+locals {
+  log_group = "fanqiang-shadowsocks"
+}
+
+module "awslogs" {
+  source     = "./modules/awslogs"
+  log_group  = local.log_group
+  agent_user = "fanqiang-awslogs-agent"
+}
 module "proxy" {
-  source               = "./modules/awsecs"
+  source               = "./modules/proxy"
   port                 = var.port
   encryption_algorithm = var.encryption_algorithm
   password             = var.password
-  service_name         = "shadowsocks"
-  log_group_name       = "fanqiang"
+  instance_name        = "shadowsocks-server"
+  awslogs = {
+    agent_access_key = module.awslogs.agent_access_key
+    region           = var.proxy_region
+    group            = local.log_group
+  }
+  public_key = var.public_key
 }
 module "tunnel" {
   source          = "./modules/tunnel"
@@ -47,16 +61,26 @@ module "rules" {
   }
   process_shadowsocks_logs_service = {
     log_filter_name = "fanqiang-shadowsocks-connection-establish"
-    log_group       = module.proxy.log_group
-    name            = "fanqiang-process-shadowsocks-logs"
-  }
-  scan_domains_service = {
-    name = "fanqiang-scan-domains"
-    rate = "30 minutes"
-    storage = {
-      bucket      = aws_s3_bucket.default.id
-      object_path = aws_s3_bucket_object.clash_domestic_rule_provider.key
+    log_group = {
+      name   = local.log_group
+      arn    = module.awslogs.arn
+      region = var.proxy_region
     }
+    name = "fanqiang-process-shadowsocks-logs"
+    clash_rule_storage = {
+      bucket      = aws_s3_bucket.default.id
+      object_path = module.clash.rule_path
+    }
+  }
+}
+module "clash" {
+  source = "./modules/clash"
+  s3     = aws_s3_bucket.default
+  client_config = {
+    server   = module.tunnel.public_ip
+    port     = var.port
+    cipher   = var.encryption_algorithm
+    password = var.password
   }
 }
 
@@ -64,24 +88,4 @@ resource "aws_s3_bucket" "default" {
   bucket        = var.bucket
   acl           = "public-read"
   force_destroy = true
-}
-resource "aws_s3_bucket_object" "clash_domestic_rule_provider" {
-  bucket        = aws_s3_bucket.default.id
-  key           = "clash/direct_domains.yaml"
-  acl           = "public-read"
-  force_destroy = true
-  content       = "payload: []"
-}
-resource "aws_s3_bucket_object" "clash_config" {
-  bucket        = aws_s3_bucket.default.id
-  key           = "clash/config.yaml"
-  acl           = "public-read"
-  force_destroy = true
-  content = templatefile("${path.module}/clash-config.yml.tpl", {
-    server                     = module.tunnel.public_ip
-    port                       = var.port
-    cipher                     = var.encryption_algorithm
-    password                   = var.password
-    domestic_rule_provider_url = "https://${aws_s3_bucket.default.bucket_domain_name}/${aws_s3_bucket_object.clash_domestic_rule_provider.key}"
-  })
 }

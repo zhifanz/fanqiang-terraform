@@ -98,7 +98,10 @@ resource "aws_lambda_function" "process_shadowsocks_logs" {
   runtime       = "python3.9"
   environment {
     variables = {
-      DYNAMODB_TABLE = aws_dynamodb_table.default.name
+      DYNAMODB_TABLE        = aws_dynamodb_table.default.name
+      PING_SERVICE_ENDPOINT = "https://${alicloud_api_gateway_group.default.sub_domain}${alicloud_api_gateway_api.default.request_config[0].path}"
+      BUCKET                = var.process_shadowsocks_logs_service.clash_rule_storage.bucket
+      OBJECT_PATH           = var.process_shadowsocks_logs_service.clash_rule_storage.object_path
     }
   }
 }
@@ -122,46 +125,6 @@ resource "aws_cloudwatch_log_subscription_filter" "default" {
   destination_arn = aws_lambda_function.process_shadowsocks_logs.arn
   filter_pattern  = "DEBUG shadowsocks_service"
   log_group_name  = var.process_shadowsocks_logs_service.log_group.name
-}
-resource "aws_lambda_function" "scan_domains" {
-  function_name = var.scan_domains_service.name
-  role          = aws_iam_role.default.arn
-  filename      = data.archive_file.scan_domains.output_path
-  handler       = "scan_domains.handler"
-  package_type  = "Zip"
-  runtime       = "python3.9"
-  timeout       = 900
-  environment {
-    variables = {
-      DYNAMODB_TABLE        = aws_dynamodb_table.default.name
-      PING_SERVICE_ENDPOINT = "https://${alicloud_api_gateway_group.default.sub_domain}${alicloud_api_gateway_api.default.request_config[0].path}"
-      BUCKET                = var.scan_domains_service.storage.bucket
-      OBJECT_PATH           = var.scan_domains_service.storage.object_path
-    }
-  }
-}
-data "archive_file" "scan_domains" {
-  type        = "zip"
-  source_file = "${path.module}/scripts/scan_domains.py"
-  output_path = "${path.root}/.files/scan_domains.zip"
-}
-resource "aws_lambda_permission" "scan_domains" {
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.scan_domains.function_name
-  principal     = "events.amazonaws.com"
-  source_arn    = aws_cloudwatch_event_rule.default.arn
-}
-resource "aws_cloudwatch_log_group" "scan_domains" {
-  name              = "/aws/lambda/${aws_lambda_function.scan_domains.function_name}"
-  retention_in_days = 1
-}
-resource "aws_cloudwatch_event_rule" "default" {
-  schedule_expression = "rate(${var.scan_domains_service.rate})"
-  is_enabled          = true
-}
-resource "aws_cloudwatch_event_target" "default" {
-  rule = aws_cloudwatch_event_rule.default.id
-  arn  = aws_lambda_function.scan_domains.arn
 }
 resource "aws_iam_role" "default" {
   name_prefix = "FanqiangLambdaRole"
