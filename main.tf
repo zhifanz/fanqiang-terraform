@@ -45,10 +45,13 @@ module "proxy" {
   public_key = var.public_key
 }
 module "tunnel" {
-  source          = "./modules/tunnel"
-  proxy_port      = var.port
-  proxy_public_ip = module.proxy.public_ip
-  public_key      = var.public_key
+  source               = "./modules/tunnel"
+  proxy_port           = var.port
+  proxy_public_ip      = module.proxy.public_ip
+  public_key           = var.public_key
+  ram_role_name        = "FangqiangEcsEipAccessRole"
+  launch_template_name = "fanqiang-nginx"
+  s3                   = aws_s3_bucket.default
 }
 module "rules" {
   source            = "./modules/rules"

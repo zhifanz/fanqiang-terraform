@@ -4,6 +4,10 @@ terraform {
       source  = "aliyun/alicloud"
       version = "1.134.0"
     }
+    aws = {
+      source  = "hashicorp/aws"
+      version = "3.60.0"
+    }
   }
 }
 
@@ -66,15 +70,24 @@ resource "alicloud_ecs_launch_template" "default" {
   spot_strategy        = "SpotAsPriceGo"
   ram_role_name        = alicloud_ram_role.default.id
   user_data = base64encode(templatefile("${path.module}/cloud-init.tpl", {
-    proxy_port               = var.proxy_port
-    proxy_address            = var.proxy_public_ip
     elastic_ip_allocation_id = alicloud_eip_address.default.id
+    nginx_conf_url           = "https://${var.s3.bucket_domain_name}/${aws_s3_bucket_object.nginx_conf.key}"
   }))
   system_disk {
     category             = "cloud_efficiency"
     delete_with_instance = true
     size                 = 40
   }
+}
+resource "aws_s3_bucket_object" "nginx_conf" {
+  bucket        = var.s3.bucket
+  key           = "nginx/nginx.conf"
+  acl           = "public-read"
+  force_destroy = true
+  content = templatefile("${path.module}/nginx.conf", {
+    listen     = var.proxy_port
+    proxy_pass = "${var.proxy_public_ip}:${var.proxy_port}"
+  })
 }
 
 resource "alicloud_ecs_key_pair" "default" {
