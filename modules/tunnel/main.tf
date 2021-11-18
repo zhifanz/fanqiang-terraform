@@ -27,7 +27,7 @@ resource "alicloud_security_group" "default" {
 }
 
 resource "alicloud_security_group_rule" "default" {
-  for_each          = toset(var.public_key != null ? [tostring(var.proxy_port), "22"] : [tostring(var.proxy_port)])
+  for_each          = toset(concat([for e in var.proxies.address_mapping : tostring(e[1])], var.public_key != null ? ["22"] : []))
   security_group_id = alicloud_security_group.default.id
   ip_protocol       = "tcp"
   type              = "ingress"
@@ -85,8 +85,7 @@ resource "aws_s3_bucket_object" "nginx_conf" {
   acl           = "public-read"
   force_destroy = true
   content = templatefile("${path.module}/nginx.conf", {
-    listen     = var.proxy_port
-    proxy_pass = "${var.proxy_public_ip}:${var.proxy_port}"
+    proxies = var.proxies
   })
 }
 

@@ -7,8 +7,12 @@ variable "s3" {
 variable "client_config" {
   type = object({
     server   = string
-    port     = string
     cipher   = string
     password = string
+    port_mapping = object({
+      default = number
+      ap      = number
+      eu      = number
+    })
   })
 }

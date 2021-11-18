@@ -15,39 +15,91 @@ terraform {
   }
 }
 provider "aws" {
-  region = var.proxy_region
+  region = "us-east-1"
+}
+provider "aws" {
+  alias  = "ap"
+  region = "ap-northeast-1"
+}
+provider "aws" {
+  alias  = "eu"
+  region = "eu-central-1"
 }
 provider "alicloud" {
-  region = var.tunnel_region
+  region = var.client_region
 }
 provider "archive" {}
-
 locals {
-  log_group = "fanqiang-shadowsocks"
+  default_port = 8388
+  log_group    = "fanqiang-shadowsocks"
+  port_mapping = {
+    default = 8527
+    ap      = 8528
+    eu      = 8529
+  }
 }
+data "aws_region" "default" {}
 
-module "awslogs" {
-  source     = "./modules/awslogs"
-  log_group  = local.log_group
-  agent_user = "fanqiang-awslogs-agent"
-}
 module "proxy" {
   source               = "./modules/proxy"
-  port                 = var.port
+  port                 = local.default_port
   encryption_algorithm = var.encryption_algorithm
   password             = var.password
   instance_name        = "shadowsocks-server"
   awslogs = {
     agent_access_key = module.awslogs.agent_access_key
-    region           = var.proxy_region
+    region           = data.aws_region.default.name
     group            = local.log_group
   }
   public_key = var.public_key
 }
+module "proxy_ap" {
+  source               = "./modules/proxy"
+  port                 = local.default_port
+  encryption_algorithm = var.encryption_algorithm
+  password             = var.password
+  instance_name        = "shadowsocks-server"
+  awslogs = {
+    agent_access_key = module.awslogs.agent_access_key
+    region           = data.aws_region.default.name
+    group            = local.log_group
+  }
+  public_key = var.public_key
+  providers = {
+    aws = aws.ap
+  }
+}
+module "proxy_eu" {
+  source               = "./modules/proxy"
+  port                 = local.default_port
+  encryption_algorithm = var.encryption_algorithm
+  password             = var.password
+  instance_name        = "shadowsocks-server"
+  awslogs = {
+    agent_access_key = module.awslogs.agent_access_key
+    region           = data.aws_region.default.name
+    group            = local.log_group
+  }
+  public_key = var.public_key
+  providers = {
+    aws = aws.eu
+  }
+}
+module "awslogs" {
+  source     = "./modules/awslogs"
+  log_group  = local.log_group
+  agent_user = "fanqiang-awslogs-agent"
+}
 module "tunnel" {
-  source               = "./modules/tunnel"
-  proxy_port           = var.port
-  proxy_public_ip      = module.proxy.public_ip
+  source = "./modules/tunnel"
+  proxies = {
+    port = local.default_port
+    address_mapping = [
+      [module.proxy.public_ip, local.port_mapping.default],
+      [module.proxy_ap.public_ip, local.port_mapping.ap],
+      [module.proxy_eu.public_ip, local.port_mapping.eu]
+    ]
+  }
   public_key           = var.public_key
   ram_role_name        = "FangqiangEcsEipAccessRole"
   launch_template_name = "fanqiang-nginx"
@@ -67,7 +119,7 @@ module "rules" {
     log_group = {
       name   = local.log_group
       arn    = module.awslogs.arn
-      region = var.proxy_region
+      region = data.aws_region.default.name
     }
     name = "fanqiang-process-shadowsocks-logs"
     clash_rule_storage = {
@@ -80,10 +132,10 @@ module "clash" {
   source = "./modules/clash"
   s3     = aws_s3_bucket.default
   client_config = {
-    server   = module.tunnel.public_ip
-    port     = var.port
-    cipher   = var.encryption_algorithm
-    password = var.password
+    server       = module.tunnel.public_ip
+    cipher       = var.encryption_algorithm
+    password     = var.password
+    port_mapping = local.port_mapping
   }
 }
 

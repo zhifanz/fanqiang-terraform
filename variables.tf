@@ -1,21 +1,15 @@
-variable "proxy_region" {
-  type    = string
-  default = "us-east-1"
-}
 variable "tunnel_region" {
-  type    = string
-  default = "cn-shanghai"
-}
-variable "port" {
-  type    = number
-  default = 8388
+  type        = string
+  default     = "cn-shanghai"
+  description = "https://help.aliyun.com/document_detail/40654.html"
 }
 variable "password" {
   type = string
 }
 variable "encryption_algorithm" {
-  type    = string
-  default = "aes-256-gcm"
+  type        = string
+  default     = "aes-256-gcm"
+  description = "https://github.com/shadowsocks/shadowsocks-crypto/blob/main/src/v1/cipher.rs"
 }
 variable "bucket" {
   type    = string

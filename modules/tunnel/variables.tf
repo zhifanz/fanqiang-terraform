@@ -1,8 +1,8 @@
-variable "proxy_public_ip" {
-  type = string
-}
-variable "proxy_port" {
-  type = number
+variable "proxies" {
+  type = object({
+    port            = number
+    address_mapping = list(tuple([string, number]))
+  })
 }
 variable "public_key" {
   type    = string
