@@ -14,14 +14,8 @@ resource "aws_lightsail_instance" "default" {
   name              = var.instance_name
   key_pair_name     = var.public_key != null ? aws_lightsail_key_pair.default[0].id : null
   user_data = templatefile("${path.module}/cloud-init.tpl", {
-    port                  = var.port
-    encryption_algorithm  = var.encryption_algorithm
-    password              = var.password
-    aws_access_key_id     = var.awslogs != null ? var.awslogs.agent_access_key.id : ""
-    aws_secret_access_key = var.awslogs != null ? var.awslogs.agent_access_key.secret : ""
-    awslogs_region        = var.awslogs != null ? var.awslogs.region : ""
-    awslogs_group         = var.awslogs != null ? var.awslogs.group : ""
-    awslogs_stream        = data.aws_region.default.name
+    shadowsocks_config_url = var.shadowsocks_config_url
+    awslogs                = var.awslogs
   })
 }
 resource "aws_lightsail_instance_public_ports" "default" {
@@ -43,4 +37,4 @@ resource "aws_lightsail_key_pair" "default" {
 data "aws_availability_zones" "default" {
   state = "available"
 }
-data "aws_region" "default" {}
+

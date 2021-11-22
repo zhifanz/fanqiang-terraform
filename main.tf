@@ -30,57 +30,67 @@ provider "alicloud" {
 }
 provider "archive" {}
 locals {
-  default_port = 8388
-  log_group    = "fanqiang-shadowsocks"
+  default_port        = 8388
+  log_group           = "fanqiang-shadowsocks"
+  proxy_instance_name = "shadowsocks-server"
   port_mapping = {
     default = 8527
     ap      = 8528
     eu      = 8529
   }
+  shadowsocks_config_url = "https://${aws_s3_bucket.default.bucket_domain_name}/${aws_s3_bucket_object.shadowsocks_cfg.key}"
+  awslogs = {
+    agent_access_key = module.awslogs.agent_access_key
+    region           = data.aws_region.default.name
+    group            = local.log_group
+  }
 }
 data "aws_region" "default" {}
+resource "aws_s3_bucket" "default" {
+  bucket        = var.bucket
+  acl           = "public-read"
+  force_destroy = true
+}
+resource "aws_s3_bucket_object" "shadowsocks_cfg" {
+  bucket        = aws_s3_bucket.default.bucket
+  key           = "shadowsocks/config.json"
+  acl           = "public-read"
+  force_destroy = true
+  content = jsonencode({
+    server      = "::"
+    server_port = local.default_port
+    password    = var.password
+    method      = var.encryption_algorithm
+  })
+}
+
 
 module "proxy" {
-  source               = "./modules/proxy"
-  port                 = local.default_port
-  encryption_algorithm = var.encryption_algorithm
-  password             = var.password
-  instance_name        = "shadowsocks-server"
-  awslogs = {
-    agent_access_key = module.awslogs.agent_access_key
-    region           = data.aws_region.default.name
-    group            = local.log_group
-  }
-  public_key = var.public_key
+  source                 = "./modules/proxy"
+  port                   = local.default_port
+  instance_name          = local.proxy_instance_name
+  shadowsocks_config_url = local.shadowsocks_config_url
+  awslogs                = local.awslogs
+  public_key             = var.public_key
 }
 module "proxy_ap" {
-  source               = "./modules/proxy"
-  port                 = local.default_port
-  encryption_algorithm = var.encryption_algorithm
-  password             = var.password
-  instance_name        = "shadowsocks-server"
-  awslogs = {
-    agent_access_key = module.awslogs.agent_access_key
-    region           = data.aws_region.default.name
-    group            = local.log_group
-  }
-  public_key = var.public_key
+  source                 = "./modules/proxy"
+  port                   = local.default_port
+  instance_name          = local.proxy_instance_name
+  shadowsocks_config_url = local.shadowsocks_config_url
+  awslogs                = local.awslogs
+  public_key             = var.public_key
   providers = {
     aws = aws.ap
   }
 }
 module "proxy_eu" {
-  source               = "./modules/proxy"
-  port                 = local.default_port
-  encryption_algorithm = var.encryption_algorithm
-  password             = var.password
-  instance_name        = "shadowsocks-server"
-  awslogs = {
-    agent_access_key = module.awslogs.agent_access_key
-    region           = data.aws_region.default.name
-    group            = local.log_group
-  }
-  public_key = var.public_key
+  source                 = "./modules/proxy"
+  port                   = local.default_port
+  instance_name          = local.proxy_instance_name
+  shadowsocks_config_url = local.shadowsocks_config_url
+  awslogs                = local.awslogs
+  public_key             = var.public_key
   providers = {
     aws = aws.eu
   }
@@ -137,10 +147,4 @@ module "clash" {
     password     = var.password
     port_mapping = local.port_mapping
   }
-}
-
-resource "aws_s3_bucket" "default" {
-  bucket        = var.bucket
-  acl           = "public-read"
-  force_destroy = true
 }
