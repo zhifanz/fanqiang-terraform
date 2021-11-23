@@ -12,6 +12,10 @@ terraform {
       source  = "hashicorp/archive"
       version = "2.2.0"
     }
+    external = {
+      source  = "hashicorp/external"
+      version = "2.1.0"
+    }
   }
 }
 provider "aws" {
@@ -29,6 +33,7 @@ provider "alicloud" {
   region = var.client_region
 }
 provider "archive" {}
+provider "external" {}
 locals {
   port_mapping = {
     default = 8527
@@ -59,7 +64,6 @@ locals {
 data "aws_region" "default" {}
 resource "aws_s3_bucket" "default" {
   bucket        = var.bucket
-  acl           = "public-read"
   force_destroy = true
 }
 module "proxy_common" {

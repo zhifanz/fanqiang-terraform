@@ -4,6 +4,10 @@ terraform {
       source  = "hashicorp/aws"
       version = "3.60.0"
     }
+    external = {
+      source  = "hashicorp/external"
+      version = "2.1.0"
+    }
   }
 }
 resource "aws_s3_bucket_object" "clash_domestic_rule_provider" {
@@ -30,7 +34,6 @@ resource "aws_s3_bucket_object" "clash_eu_rule_provider" {
 resource "aws_s3_bucket_object" "clash_config" {
   bucket        = var.s3.bucket
   key           = "clash/config.yaml"
-  acl           = "public-read"
   force_destroy = true
   content = templatefile("${path.module}/config.yaml.tpl", {
     server    = var.client_config.server
@@ -51,4 +54,11 @@ resource "aws_s3_bucket_object" "clash_config" {
     ]
     domestic_rule_provider_url = "https://${var.s3.bucket_domain_name}/${aws_s3_bucket_object.clash_domestic_rule_provider.key}"
   })
+}
+data "external" "presign_url" {
+  program = ["python3", "${path.module}/presign.py"]
+  query = {
+    bucket = var.s3.bucket
+    key    = aws_s3_bucket_object.clash_config.key
+  }
 }

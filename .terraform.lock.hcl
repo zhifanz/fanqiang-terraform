@@ -59,3 +59,11 @@ provider "registry.terraform.io/hashicorp/aws" {
     "zh:fa7eb23bcf4c01f93d74c509c0e9b039148f43424c3b4ce64619af17ee12265c",
   ]
 }
+
+provider "registry.terraform.io/hashicorp/external" {
+  version     = "2.1.0"
+  constraints = "2.1.0"
+  hashes = [
+    "h1:LTl5CGW8wiIEe16AC4MtXN/95xWWNDbap70zJsBTk0w=",
+  ]
+}

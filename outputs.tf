@@ -1,5 +1,5 @@
 output "clash_config_url" {
-  value = "https://${aws_s3_bucket.default.bucket_domain_name}/${module.clash.config_path}"
+  value = module.clash.config_url
 }
 output "tunnel_public_ip" {
   value = module.tunnel.public_ip
