@@ -9,7 +9,7 @@ from urllib import request
 import boto3
 from boto3.dynamodb.conditions import Key, Attr
 
-DOMAIN_PATTERN = r'<-> ([\w-]+\.)*(\w+\.[a-z]+):\d+ '
+DOMAIN_PATTERN = r'<-> ([\w.-]+):\d+ '
 
 def decode_events(event):
     compressed_event_data = base64.standard_b64decode(event['awslogs']['data'])
@@ -60,5 +60,5 @@ def handler(event, context):
     for log_event in decode_events(event):
         log_message = log_event['message']
         match = re.search(DOMAIN_PATTERN, log_message)
-        if match and match.lastindex:
-            process_domain(match.group(match.lastindex))
+        if match:
+            process_domain(match.group(1))
