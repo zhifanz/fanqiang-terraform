@@ -56,9 +56,5 @@ resource "aws_s3_bucket_object" "clash_config" {
   })
 }
 data "external" "presign_url" {
-  program = ["python3", "${path.module}/presign.py"]
-  query = {
-    bucket = var.s3.bucket
-    key    = aws_s3_bucket_object.clash_config.key
-  }
+  program = ["bash", "${path.module}/jsontify.sh", "aws", "s3", "presign", "s3://${var.s3.bucket}/${aws_s3_bucket_object.clash_config.key}"]
 }
