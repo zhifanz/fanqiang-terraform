@@ -22,14 +22,14 @@ resource "aws_s3_bucket_object" "clash_ap_rule_provider" {
   key           = "clash/geoip_ap.yaml"
   acl           = "public-read"
   force_destroy = true
-  content       = file("${path.module}/geoip_ap.yaml")
+  content       = "payload: []"
 }
 resource "aws_s3_bucket_object" "clash_eu_rule_provider" {
   bucket        = var.s3.bucket
   key           = "clash/geoip_eu.yaml"
   acl           = "public-read"
   force_destroy = true
-  content       = file("${path.module}/geoip_eu.yaml")
+  content       = "payload: []"
 }
 resource "aws_s3_bucket_object" "clash_config" {
   bucket        = var.s3.bucket

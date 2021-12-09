@@ -35,13 +35,14 @@ rule-providers:
     behavior: domain
     path: ./${basename(domestic_rule_provider_url)}
     url: ${domestic_rule_provider_url}
-    interval: 60
+    interval: 300
   %{~ for e in continent_rules ~}
   ${e.continent}:
     type: http
-    behavior: classical
+    behavior: domain
     path: ./${basename(e.rule_provider_url)}
     url: ${e.rule_provider_url}
+    interval: 300
   %{~ endfor ~}
 rules:
   - DOMAIN-SUFFIX,google.com,auto
