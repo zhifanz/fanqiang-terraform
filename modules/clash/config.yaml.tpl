@@ -48,7 +48,6 @@ rules:
   - DOMAIN-SUFFIX,google.com,auto
   - DOMAIN,ad.com,REJECT
   - RULE-SET,domestic,DIRECT
-  - GEOIP,CN,DIRECT
   %{~ for e in continent_rules ~}
   - RULE-SET,${e.continent},${e.continent}
   %{~ endfor ~}

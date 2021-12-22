@@ -12,21 +12,21 @@ terraform {
 }
 resource "aws_s3_bucket_object" "clash_domestic_rule_provider" {
   bucket        = var.s3.bucket
-  key           = "clash/direct_domains.yaml"
+  key           = "clash/domains_cn.yaml"
   acl           = "public-read"
   force_destroy = true
   content       = "payload: []"
 }
 resource "aws_s3_bucket_object" "clash_ap_rule_provider" {
   bucket        = var.s3.bucket
-  key           = "clash/geoip_ap.yaml"
+  key           = "clash/domains_ap.yaml"
   acl           = "public-read"
   force_destroy = true
   content       = "payload: []"
 }
 resource "aws_s3_bucket_object" "clash_eu_rule_provider" {
   bucket        = var.s3.bucket
-  key           = "clash/geoip_eu.yaml"
+  key           = "clash/domains_eu.yaml"
   acl           = "public-read"
   force_destroy = true
   content       = "payload: []"

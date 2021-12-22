@@ -7,23 +7,41 @@ terraform {
   }
 }
 
+resource "aws_cloudwatch_log_group" "default" {
+  count = var.log_group != null ? 1 : 0
+  name              = var.log_group
+  retention_in_days = 1
+}
+resource "aws_iam_user_policy" "default" {
+  count = var.log_group != null ? 1 : 0
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+        Effect   = "Allow"
+        Action   = "logs:*"
+        Resource = "${aws_cloudwatch_log_group.default[0].arn}:*"
+      }]
+  })
+  user = var.agent_user.name
+}
 resource "aws_lightsail_instance" "default" {
   availability_zone = data.aws_availability_zones.default.names[0]
   blueprint_id      = "amazon_linux_2"
   bundle_id         = "nano_2_0"
-  name              = var.config.instance_name
+  name              = var.instance_name
   key_pair_name     = var.public_key != null ? aws_lightsail_key_pair.default[0].id : null
-  user_data = templatefile("${path.module}/cloud-init.tpl", {
-    shadowsocks_config_url = var.config.shadowsocks_config_url
-    log_group              = var.config.log_group
-    agent_user             = var.config.agent_user
+  user_data         = templatefile("${path.module}/cloud-init.tpl", {
+    shadowsocks_config_uri = var.shadowsocks_config_uri
+    access_key = var.agent_user.access_key
+    log_group = var.log_group
+    ra = var.rule_analysis
   })
 }
 resource "aws_lightsail_instance_public_ports" "default" {
   instance_name = aws_lightsail_instance.default.name
 
   dynamic "port_info" {
-    for_each = var.public_key != null ? [var.config.port, 22] : [var.config.port]
+    for_each = var.public_key != null ? [var.port, 22] : [var.port]
     content {
       protocol  = "tcp"
       from_port = port_info.value

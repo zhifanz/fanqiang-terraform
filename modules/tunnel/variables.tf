@@ -20,3 +20,16 @@ variable "s3" {
     bucket_domain_name = string
   })
 }
+variable "rule_analysis" {
+  type = object({
+    dynamodb_table = string
+    days_to_scan   = number
+    ping_count     = number
+    access_key = object({
+      id     = string
+      secret = string
+    })
+    image_uri = string
+  })
+  default = null
+}

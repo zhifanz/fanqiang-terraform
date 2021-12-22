@@ -15,4 +15,4 @@ terraform.rc
 # IDE and OS
 **/.DS_Store
 .vscode
-
+.idea

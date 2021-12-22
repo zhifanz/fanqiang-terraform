@@ -72,6 +72,7 @@ resource "alicloud_ecs_launch_template" "default" {
   user_data = base64encode(templatefile("${path.module}/cloud-init.tpl", {
     elastic_ip_allocation_id = alicloud_eip_address.default.id
     nginx_conf_url           = "https://${var.s3.bucket_domain_name}/${aws_s3_bucket_object.nginx_conf.key}"
+    ra                       = var.rule_analysis
   }))
   system_disk {
     category             = "cloud_efficiency"

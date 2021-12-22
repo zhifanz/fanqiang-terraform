@@ -1,114 +1,85 @@
 terraform {
   required_providers {
-    alicloud = {
-      source  = "aliyun/alicloud"
-      version = "1.134.0"
-    }
     aws = {
       source  = "hashicorp/aws"
       version = "3.60.0"
     }
-    archive = {
-      source  = "hashicorp/archive"
-      version = "2.2.0"
+    external = {
+      source  = "hashicorp/external"
+      version = "2.1.0"
     }
   }
 }
 
-resource "alicloud_api_gateway_group" "default" {
-  name        = alicloud_fc_service.default.name
-  description = "Gateway group for fc ping"
+resource "aws_ecr_repository" "update_rules" {
+  name = var.update_rules_service.docker_repo.name
 }
-resource "alicloud_api_gateway_api" "default" {
-  name        = alicloud_fc_function.default.name
-  group_id    = alicloud_api_gateway_group.default.id
-  description = "Gateway for fc ping"
-  auth_type   = "ANONYMOUS"
-  request_config {
-    protocol = "HTTPS"
-    method   = "GET"
-    path     = "/fanqiang/ping"
-    mode     = "PASSTHROUGH"
+data "external" "update_rules" {
+  program = ["bash",
+    "${path.root}/run-script.sh",
+    "${path.module}/create-ecr-image.sh",
+    "${var.update_rules_service.docker_repo.registry}/${var.update_rules_service.docker_repo.name}:${var.update_rules_service.docker_repo.version}",
+    "${aws_ecr_repository.update_rules.repository_url}:latest"
+  ]
+}
+resource "aws_lambda_function" "update_rules" {
+  function_name = var.update_rules_service.name
+  role          = aws_iam_role.default.arn
+  package_type  = "Image"
+  runtime       = "python3.8"
+  image_uri     = "${aws_ecr_repository.update_rules.repository_url}:latest"
+  environment {
+    variables = {
+      DYNAMODB_TABLE   = aws_dynamodb_table.default.name
+      BUCKET           = var.update_rules_service.rules_storage.bucket
+      CONFIG_ROOT_PATH = var.update_rules_service.rules_storage.config_root_path
+      DAYS_TO_SCAN     = var.update_rules_service.days_to_scan
+    }
   }
-  service_type = "FunctionCompute"
-  fc_service_config {
-    region        = data.alicloud_regions.default.ids[0]
-    function_name = alicloud_fc_function.default.name
-    service_name  = alicloud_fc_service.default.name
-    arn_role      = alicloud_ram_role.fc_invoke.arn
-    timeout       = alicloud_fc_function.default.timeout * 1000
-  }
-  stage_names = ["RELEASE"]
+  depends_on = [data.external.update_rules]
 }
-resource "alicloud_ram_role" "fc_invoke" {
-  name     = var.ping_service.ram_role_name
-  document = <<EOF
-  {
-    "Statement": [
-      {
-        "Action": "sts:AssumeRole",
-        "Effect": "Allow",
-        "Principal": {
-          "Service": [
-            "apigateway.aliyuncs.com"
-          ]
-        }
-      }
-    ],
-    "Version": "1"
-  }
-  EOF
-  force    = true
+resource "aws_cloudwatch_log_group" "update_rules" {
+  name              = "/aws/lambda/${aws_lambda_function.update_rules.function_name}"
+  retention_in_days = 1
 }
-resource "alicloud_ram_role_policy_attachment" "fc_invoke" {
-  policy_name = "AliyunFCInvocationAccess"
-  policy_type = "System"
-  role_name   = alicloud_ram_role.fc_invoke.id
+resource "aws_lambda_permission" "update_rules" {
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.update_rules.function_name
+  principal     = "events.amazonaws.com"
+  source_arn    = aws_cloudwatch_event_rule.default.arn
 }
-resource "alicloud_fc_service" "default" {
-  name            = var.ping_service.service_name
-  internet_access = true
+resource "aws_cloudwatch_event_rule" "default" {
+  schedule_expression = "rate(${var.update_rules_service.update_interval})"
+  is_enabled          = true
 }
-resource "alicloud_fc_function" "default" {
-  service     = alicloud_fc_service.default.id
-  name        = var.ping_service.function_name
-  filename    = data.archive_file.ping.output_path
-  handler     = "ping.handler"
-  memory_size = 128
-  runtime     = "python3"
-  environment_variables = {
-    "TIMEOUT" = var.ping_service.timeout_in_seconds
-  }
-}
-data "archive_file" "ping" {
-  type        = "zip"
-  source_file = "${path.module}/scripts/ping.py"
-  output_path = "${path.root}/.files/ping.zip"
-}
-data "alicloud_regions" "default" {
-  current = true
+resource "aws_cloudwatch_event_target" "default" {
+  rule = aws_cloudwatch_event_rule.default.id
+  arn  = aws_lambda_function.update_rules.arn
 }
 
+resource "aws_ecr_repository" "process_shadowsocks_logs" {
+  name = var.process_shadowsocks_logs_service.docker_repo.name
+}
+data "external" "process_shadowsocks_logs" {
+  program = ["bash",
+    "${path.root}/run-script.sh",
+    "${path.module}/create-ecr-image.sh",
+    "${var.process_shadowsocks_logs_service.docker_repo.registry}/${var.process_shadowsocks_logs_service.docker_repo.name}:${var.process_shadowsocks_logs_service.docker_repo.version}",
+    "${aws_ecr_repository.process_shadowsocks_logs.repository_url}:latest"
+  ]
+}
 resource "aws_lambda_function" "process_shadowsocks_logs" {
   function_name = var.process_shadowsocks_logs_service.name
   role          = aws_iam_role.default.arn
-  filename      = data.archive_file.process_shadowsocks_logs.output_path
-  handler       = "process_shadowsocks_logs.handler"
-  package_type  = "Zip"
-  runtime       = "python3.9"
+  package_type  = "Image"
+  runtime       = "python3.8"
+  image_uri     = "${aws_ecr_repository.process_shadowsocks_logs.repository_url}:latest"
   environment {
     variables = {
-      DYNAMODB_TABLE        = aws_dynamodb_table.default.name
-      PING_SERVICE_ENDPOINT = "https://${alicloud_api_gateway_group.default.sub_domain}${alicloud_api_gateway_api.default.request_config[0].path}"
-      BUCKET                = var.process_shadowsocks_logs_service.clash_rule_storage.bucket
-      OBJECT_PATH           = var.process_shadowsocks_logs_service.clash_rule_storage.object_path
+      DYNAMODB_TABLE = aws_dynamodb_table.default.name
     }
   }
-}
-data "archive_file" "process_shadowsocks_logs" {
-  type        = "zip"
-  source_file = "${path.module}/scripts/process_shadowsocks_logs.py"
-  output_path = "${path.root}/.files/process_shadowsocks_logs.zip"
+  depends_on = [data.external.process_shadowsocks_logs]
 }
 resource "aws_lambda_permission" "process_shadowsocks_logs" {
   action        = "lambda:InvokeFunction"
@@ -131,7 +102,8 @@ resource "aws_iam_role" "default" {
   managed_policy_arns = [
     "arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess",
     "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
-    "arn:aws:iam::aws:policy/AmazonS3FullAccess"
+    "arn:aws:iam::aws:policy/AmazonS3FullAccess",
+    "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
   ]
   force_detach_policies = true
   assume_role_policy    = data.aws_iam_policy_document.default.json
