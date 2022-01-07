@@ -10,9 +10,11 @@ variable "client_config" {
     cipher   = string
     password = string
     port_mapping = object({
-      default = number
-      ap      = number
-      eu      = number
+      auto = number
+      others = list(object({
+        continent = string
+        port      = number
+      }))
     })
   })
 }

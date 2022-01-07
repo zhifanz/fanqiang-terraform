@@ -1,6 +1,3 @@
 output "config_url" {
-  value = data.external.presign_url.result.stdout
-}
-output "rule_path" {
-  value = aws_s3_bucket_object.clash_domestic_rule_provider.key
+  value = "https://${var.s3.bucket_domain_name}/${aws_s3_bucket_object.clash_config.key}"
 }

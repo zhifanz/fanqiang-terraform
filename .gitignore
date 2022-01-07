@@ -12,6 +12,10 @@ override.tf.json
 .terraformrc
 terraform.rc
 
+# Archives
+**/*.zip
+**/*.tar.gz
+
 # IDE and OS
 **/.DS_Store
 .vscode

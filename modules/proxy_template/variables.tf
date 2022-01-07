@@ -12,7 +12,8 @@ variable "rule_analysis" {
     days_to_scan   = number
     ping_count     = number
     dynamodb_table = string
-    image_uri = string
+    image_uri      = string
+    continent      = string
   })
   default = null
 }
@@ -21,11 +22,11 @@ variable "public_key" {
 }
 variable "agent_user" {
   type = object({
-    name = string
+    name       = string
     access_key = any
   })
 }
 variable "log_group" {
-  type = string
+  type    = string
   default = null
 }

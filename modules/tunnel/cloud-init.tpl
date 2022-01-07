@@ -19,8 +19,7 @@ systemctl start nginx
 yum -y install docker
 systemctl start docker
 docker pull public.ecr.aws/zhifanz/fanqiang-update-ping
-CONTINENT=$(echo $REGION | cut -d- -f1)
 crontab <<EOF
-0 * * * * docker run -e AWS_ACCESS_KEY_ID="${ra.access_key.id}" -e AWS_SECRET_ACCESS_KEY="${ra.access_key.secret}" --rm ${ra.image_uri} --days ${ra.days_to_scan} --pingcount ${ra.ping_count} ${ra.dynamodb_table} $CONTINENT
+0 * * * * docker run -e AWS_ACCESS_KEY_ID="${ra.access_key.id}" -e AWS_SECRET_ACCESS_KEY="${ra.access_key.secret}" --rm ${ra.image_uri} --days ${ra.days_to_scan} --pingcount ${ra.ping_count} ${ra.dynamodb_table} ${ra.continent}
 EOF
 %{ endif }

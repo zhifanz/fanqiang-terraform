@@ -30,6 +30,7 @@ variable "rule_analysis" {
       secret = string
     })
     image_uri = string
+    continent = string
   })
   default = null
 }

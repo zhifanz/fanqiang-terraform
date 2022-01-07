@@ -19,7 +19,6 @@ mkdir $(dirname $SHADOWSOCKS_CONFIG) && aws s3 cp ${shadowsocks_config_uri} $SHA
 PORT=$(jq --compact-output .server_port $SHADOWSOCKS_CONFIG)
 REGION=$(curl --silent http://169.254.169.254/latest/meta-data/placement/region)
 INSTANCE_ID=$(curl --silent http://169.254.169.254/latest/meta-data/instance-id)
-CONTINENT=$(echo $REGION | cut -d- -f1)
 
 docker run --name ssserver-rust \
   --restart always \
@@ -35,6 +34,6 @@ docker run --name ssserver-rust \
 
 %{ if ra != null }
 crontab <<EOF
-0 * * * * docker run -e AWS_ACCESS_KEY_ID="${access_key.id}" -e AWS_SECRET_ACCESS_KEY="${access_key.secret}" --rm ${ra.image_uri} --days ${ra.days_to_scan} --pingcount ${ra.ping_count} ${ra.dynamodb_table} $CONTINENT
+0 * * * * docker run -e AWS_ACCESS_KEY_ID="${access_key.id}" -e AWS_SECRET_ACCESS_KEY="${access_key.secret}" --rm ${ra.image_uri} --days ${ra.days_to_scan} --pingcount ${ra.ping_count} ${ra.dynamodb_table} ${ra.continent}
 EOF
 %{ endif }
