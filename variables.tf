@@ -27,3 +27,7 @@ variable "public_key" {
   type    = string
   default = null
 }
+variable "mini" {
+  type    = bool
+  default = true
+}

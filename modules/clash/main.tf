@@ -6,10 +6,21 @@ terraform {
     }
   }
 }
-resource "aws_s3_bucket_object" "clash_rule_provider" {
-  count         = length(var.client_config.port_mapping.others) + 1
+locals {
+  other_count = length(var.client_config.port_mapping.others)
+}
+resource "aws_s3_bucket_object" "domestic_clash_rule_provider" {
+  count         = local.other_count > 0 ? 1 : 0
   bucket        = var.s3.bucket
-  key           = count.index == 0 ? "clash/domains_domestic.yaml" : "clash/domains_${var.client_config.port_mapping.others[count.index - 1].continent}.yaml"
+  key           = "clash/domains_domestic.yaml"
+  acl           = "public-read"
+  force_destroy = true
+  content       = "payload: []"
+}
+resource "aws_s3_bucket_object" "clash_rule_provider" {
+  count         = local.other_count
+  bucket        = var.s3.bucket
+  key           = "clash/domains_${var.client_config.port_mapping.others[count.index].continent}.yaml"
   acl           = "public-read"
   force_destroy = true
   content       = "payload: []"
@@ -19,7 +30,7 @@ resource "aws_s3_bucket_object" "clash_config" {
   key           = "clash/config.yaml"
   acl           = "public-read"
   force_destroy = true
-  content = templatefile("${path.module}/config.yaml.tpl", {
+  content = local.other_count > 0 ? templatefile("${path.module}/config.yaml.tpl", {
     server    = var.client_config.server
     cipher    = var.client_config.cipher
     password  = var.client_config.password
@@ -27,8 +38,13 @@ resource "aws_s3_bucket_object" "clash_config" {
     continent_rules = [for i, v in var.client_config.port_mapping.others : {
       continent         = v.continent
       port              = v.port
-      rule_provider_url = "https://${var.s3.bucket_domain_name}/${aws_s3_bucket_object.clash_rule_provider[i + 1].key}"
+      rule_provider_url = "https://${var.s3.bucket_domain_name}/${aws_s3_bucket_object.clash_rule_provider[i].key}"
     }]
-    domestic_rule_provider_url = "https://${var.s3.bucket_domain_name}/${aws_s3_bucket_object.clash_rule_provider[0].key}"
+    domestic_rule_provider_url = "https://${var.s3.bucket_domain_name}/${aws_s3_bucket_object.domestic_clash_rule_provider[0].key}"
+    }) : templatefile("${path.module}/config-mini.yaml.tpl", {
+    server   = var.client_config.server
+    cipher   = var.client_config.cipher
+    password = var.client_config.password
+    port     = var.client_config.port_mapping.auto
   })
 }
