@@ -15,6 +15,15 @@ variable "encryption_algorithm" {
     error_message = "You must specify an encryption algorithm."
   }
 }
+variable "scale" {
+  type        = string
+  default     = "mini"
+  description = "Determine how many features will be included in final infrastructure"
+  validation {
+    condition     = contains(["minimal", "moderate", "premium"], var.scale)
+    error_message = "The scale value must be in [minimal, moderate, premium]."
+  }
+}
 variable "bucket" {
   type    = string
   default = "fanqiang"
@@ -26,8 +35,4 @@ variable "domain_access_timeout_in_seconds" {
 variable "public_key" {
   type    = string
   default = null
-}
-variable "mini" {
-  type    = bool
-  default = true
 }

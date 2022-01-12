@@ -71,18 +71,18 @@ module "proxy_instance" {
     name       = local.agent_user
     access_key = module.common.agent_access_key
   }
-  rule_analysis = var.mini ? null : {
+  rule_analysis = var.scale == "premium" ? {
     days_to_scan   = local.rule_analysis.days_to_scan
     ping_count     = local.rule_analysis.ping_count
     dynamodb_table = local.rule_analysis.dynamodb_table
     image_uri      = "zhifanz/fanqiang-update-ping:1.0.0"
     continent      = "auto"
-  }
+  } : null
   public_key = var.public_key
-  log_group  = var.mini ? null : local.proxy.log_group
+  log_group  = var.scale == "premium" ? local.proxy.log_group : null
 }
 module "proxy_instance_ap" {
-  count                  = var.mini ? 0 : 1
+  count                  = var.scale == "premium" ? 1 : 0
   source                 = "./modules/proxy_template"
   instance_name          = local.proxy.instance_name
   port                   = local.proxy.port
@@ -104,7 +104,7 @@ module "proxy_instance_ap" {
   }
 }
 module "proxy_instance_eu" {
-  count                  = var.mini ? 0 : 1
+  count                  = var.scale == "premium" ? 1 : 0
   source                 = "./modules/proxy_template"
   instance_name          = local.proxy.instance_name
   port                   = local.proxy.port
@@ -126,31 +126,31 @@ module "proxy_instance_eu" {
   }
 }
 module "tunnel" {
-  count  = var.mini ? 0 : 1
+  count  = var.scale == "minimal" ? 0 : 1
   source = "./modules/tunnel"
   proxies = {
     port = local.proxy.port
-    address_mapping = [
+    address_mapping = var.scale == "premium" ? [
       [module.proxy_instance.public_ip, local.port_mapping.auto],
       [module.proxy_instance_ap[0].public_ip, local.port_mapping.ap],
       [module.proxy_instance_eu[0].public_ip, local.port_mapping.eu]
-    ]
+    ] : [[module.proxy_instance.public_ip, local.proxy.port]]
   }
   public_key           = var.public_key
   ram_role_name        = "FangqiangEcsEipAccessRole"
   launch_template_name = "fanqiang-nginx"
   s3                   = module.common.s3
-  rule_analysis = {
+  rule_analysis = var.scale == "premium" ? {
     dynamodb_table = local.rule_analysis.dynamodb_table
     days_to_scan   = local.rule_analysis.days_to_scan
     ping_count     = local.rule_analysis.ping_count
     access_key     = module.common.agent_access_key
     image_uri      = "zhifanz/fanqiang-update-ping:1.0.0"
     continent      = "domestic"
-  }
+  } : null
 }
 module "rules" {
-  count             = var.mini ? 0 : 1
+  count             = var.scale == "premium" ? 1 : 0
   source            = "./modules/rules"
   domain_table_name = local.rule_analysis.dynamodb_table
   agent_user        = local.agent_user
@@ -190,12 +190,12 @@ module "clash" {
   source = "./modules/clash"
   s3     = module.common.s3
   client_config = {
-    server   = var.mini ? module.proxy_instance.public_ip : module.tunnel[0].public_ip
+    server   = var.scale == "minimal" ? module.proxy_instance.public_ip : module.tunnel[0].public_ip
     cipher   = var.encryption_algorithm
     password = var.password
     port_mapping = {
-      auto = var.mini ? local.proxy.port : local.port_mapping.auto
-      others = var.mini ? [] : [
+      auto = var.scale == "premium" ? local.port_mapping.auto : local.proxy.port
+      others = var.scale == "premium" ? [
         {
           continent = "ap"
           port      = local.port_mapping.ap
@@ -203,7 +203,7 @@ module "clash" {
         {
           continent = "eu"
           port      = local.port_mapping.eu
-      }]
+      }] : []
     }
   }
 }
