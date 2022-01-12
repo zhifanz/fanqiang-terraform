@@ -30,7 +30,7 @@ docker run --name ssserver-rust \
   --log-opt awslogs-group=${log_group} \
   --log-opt awslogs-stream=$INSTANCE_ID \
   %{~ endif ~}
-  -dit ghcr.io/shadowsocks/ssserver-rust:v1.11.2 -v
+  -dit ghcr.io/shadowsocks/ssserver-rust:v1.11.2 %{ if log_group != null } -v %{ endif }
 
 %{ if ra != null }
 crontab <<EOF
