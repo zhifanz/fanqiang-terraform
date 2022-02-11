@@ -35,15 +35,15 @@ locals {
     ap   = 8528
     eu   = 8529
   }
-  agent_user = "fanqiang-agent"
+  agent_user = var.dev.agent_user
 
   proxy = {
-    instance_name = "shadowsocks-server"
+    instance_name = var.dev.proxy_instance_name
     port          = 8388
-    log_group     = "fanqiang-shadowsocks"
+    log_group     = var.dev.log_group
   }
   rule_analysis = {
-    dynamodb_table   = "domains"
+    dynamodb_table   = var.dev.dynamodb_table
     days_to_scan     = 30
     ping_count       = 10
     update_interval  = "10 minutes"
@@ -137,8 +137,8 @@ module "tunnel" {
     ] : [[module.proxy_instance.public_ip, local.proxy.port]]
   }
   public_key           = var.public_key
-  ram_role_name        = "FangqiangEcsEipAccessRole"
-  launch_template_name = "fanqiang-nginx"
+  ram_role_name        = var.dev.tunnel_ram_role_name
+  launch_template_name = var.dev.tunnel_launch_template_name
   s3                   = module.common.s3
   rule_analysis = var.scale == "premium" ? {
     dynamodb_table = local.rule_analysis.dynamodb_table

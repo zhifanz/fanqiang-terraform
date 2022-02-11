@@ -36,3 +36,15 @@ variable "public_key" {
   type    = string
   default = null
 }
+# All variable defined below is for develop purpose only, end user should just keep the default value
+variable "dev" {
+  type = any
+  default = {
+    agent_user                  = "fanqiang-agent"
+    proxy_instance_name         = "shadowsocks-server"
+    log_group                   = "fanqiang-shadowsocks"
+    dynamodb_table              = "domains"
+    tunnel_ram_role_name        = "FangqiangEcsEipAccessRole"
+    tunnel_launch_template_name = "fanqiang-nginx"
+  }
+}
