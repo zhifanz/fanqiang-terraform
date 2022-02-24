@@ -42,8 +42,8 @@ resource "aws_iam_user_policy" "default" {
     Statement = [
       {
         Effect   = "Allow"
-        Action   = "s3:GetObject"
-        Resource = "${aws_s3_bucket.default.arn}/*"
+        Action   = "s3:*"
+        Resource = ["${aws_s3_bucket.default.arn}/*", aws_s3_bucket.default.arn]
       }
     ]
   })
