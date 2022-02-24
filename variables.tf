@@ -1,8 +1,3 @@
-variable "client_region" {
-  type        = string
-  default     = "cn-shanghai"
-  description = "https://help.aliyun.com/document_detail/40654.html"
-}
 variable "password" {
   type = string
 }
@@ -15,22 +10,22 @@ variable "encryption_algorithm" {
     error_message = "You must specify an encryption algorithm."
   }
 }
-variable "scale" {
-  type        = string
-  default     = "mini"
-  description = "Determine how many features will be included in final infrastructure"
-  validation {
-    condition     = contains(["minimal", "moderate", "premium"], var.scale)
-    error_message = "The scale value must be in [minimal, moderate, premium]."
-  }
-}
 variable "bucket" {
   type    = string
   default = "fanqiang"
 }
-variable "domain_access_timeout_in_seconds" {
+variable "multi_proxy" {
+  type    = bool
+  default = false
+}
+variable "client_region" {
+  type        = string
+  default     = null
+  description = "https://help.aliyun.com/document_detail/40654.html"
+}
+variable "rule_analysis_project" {
   type    = string
-  default = "1"
+  default = null
 }
 variable "public_key" {
   type    = string
@@ -42,8 +37,6 @@ variable "dev" {
   default = {
     agent_user                  = "fanqiang-agent"
     proxy_instance_name         = "shadowsocks-server"
-    log_group                   = "fanqiang-shadowsocks"
-    dynamodb_table              = "domains"
     tunnel_ram_role_name        = "FangqiangEcsEipAccessRole"
     tunnel_launch_template_name = "fanqiang-nginx"
   }

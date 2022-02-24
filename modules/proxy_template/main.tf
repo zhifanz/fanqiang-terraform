@@ -7,34 +7,15 @@ terraform {
   }
 }
 
-resource "aws_cloudwatch_log_group" "default" {
-  count = var.log_group != null ? 1 : 0
-  name              = var.log_group
-  retention_in_days = 1
-}
-resource "aws_iam_user_policy" "default" {
-  count = var.log_group != null ? 1 : 0
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-        Effect   = "Allow"
-        Action   = "logs:*"
-        Resource = "${aws_cloudwatch_log_group.default[0].arn}:*"
-      }]
-  })
-  user = var.agent_user.name
-}
 resource "aws_lightsail_instance" "default" {
   availability_zone = data.aws_availability_zones.default.names[0]
   blueprint_id      = "amazon_linux_2"
   bundle_id         = "nano_2_0"
   name              = var.instance_name
   key_pair_name     = var.public_key != null ? aws_lightsail_key_pair.default[0].id : null
-  user_data         = templatefile("${path.module}/cloud-init.tpl", {
-    shadowsocks_config_uri = var.shadowsocks_config_uri
-    access_key = var.agent_user.access_key
-    log_group = var.log_group
-    ra = var.rule_analysis
+  user_data = templatefile("${path.module}/cloud-init.tpl", {
+    artifacts  = var.artifacts
+    access_key = var.agent_user_access_key
   })
 }
 resource "aws_lightsail_instance_public_ports" "default" {

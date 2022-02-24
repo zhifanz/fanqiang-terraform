@@ -4,29 +4,16 @@ variable "instance_name" {
 variable "port" {
   type = number
 }
-variable "shadowsocks_config_uri" {
-  type = string
-}
-variable "rule_analysis" {
-  type = object({
-    days_to_scan   = number
-    ping_count     = number
-    dynamodb_table = string
-    image_uri      = string
-    continent      = string
-  })
-  default = null
-}
 variable "public_key" {
   type = string
 }
-variable "agent_user" {
-  type = object({
-    name       = string
-    access_key = any
-  })
+variable "agent_user_access_key" {
+  type = any
 }
-variable "log_group" {
-  type    = string
-  default = null
+variable "artifacts" {
+  type = object({
+    root_uri              = string
+    compose_file          = string
+    compose_override_file = string
+  })
 }

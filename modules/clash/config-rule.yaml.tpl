@@ -17,17 +17,17 @@ dns:
 proxies:
   - name: auto
     type: ss
-    server: ${server}
-    port: ${auto_port}
-    cipher: ${cipher}
-    password: ${password}
-  %{~ for e in continent_rules ~}
+    server: ${config.proxies.auto.server}
+    port: ${config.proxies.auto.port}
+    cipher: ${config.cipher}
+    password: ${config.password}
+  %{~ for e in config.proxies.others ~}
   - name: ${e.continent}
     type: ss
-    server: ${server}
+    server: ${e.server}
     port: ${e.port}
-    cipher: ${cipher}
-    password: ${password}
+    cipher: ${config.cipher}
+    password: ${config.password}
   %{~ endfor ~}
 rule-providers:
   domestic:
@@ -36,19 +36,19 @@ rule-providers:
     path: ./${basename(domestic_rule_provider_url)}
     url: ${domestic_rule_provider_url}
     interval: 300
-  %{~ for e in continent_rules ~}
+  %{~ for i, e in config.proxies.others ~}
   ${e.continent}:
     type: http
     behavior: domain
-    path: ./${basename(e.rule_provider_url)}
-    url: ${e.rule_provider_url}
+    path: ./${basename(other_rule_provider_urls[i])}
+    url: ${other_rule_provider_urls[i]}
     interval: 300
   %{~ endfor ~}
 rules:
   - DOMAIN-SUFFIX,google.com,auto
   - DOMAIN,ad.com,REJECT
   - RULE-SET,domestic,DIRECT
-  %{~ for e in continent_rules ~}
+  %{~ for e in config.proxies.others ~}
   - RULE-SET,${e.continent},${e.continent}
   %{~ endfor ~}
   - MATCH,auto

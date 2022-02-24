@@ -6,15 +6,21 @@ variable "s3" {
 }
 variable "client_config" {
   type = object({
-    server   = string
     cipher   = string
     password = string
-    port_mapping = object({
-      auto = number
+    proxies = object({
+      auto = object({
+        server = string
+        port   = number
+      })
       others = list(object({
         continent = string
+        server    = string
         port      = number
       }))
     })
   })
+}
+variable "enable_rules" {
+  type = bool
 }

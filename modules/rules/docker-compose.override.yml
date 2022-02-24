@@ -1,0 +1,25 @@
+version: "3.9"
+services:
+
+  fluentbit:
+    image: fluent/fluent-bit:1.8
+    volumes:
+      - ./fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf
+      - ./fluent-bit-parsers.conf:/fluent-bit/etc/fluent-bit-parsers.conf
+      - ./credentials.json:/fluent-bit/etc/credentials.json
+    environment:
+      - GOOGLE_SERVICE_CREDENTIALS=/fluent-bit/etc/credentials.json
+    env_file:
+      - ./fluent-bit.env
+    expose:
+      - "24224"
+
+  shadowsocks:
+    command: -v
+    logging:
+      driver: fluentd
+      options:
+        fluentd-address: fluentbit:24224
+        fluentd-async: "true"
+    depends_on:
+      - fluentbit
