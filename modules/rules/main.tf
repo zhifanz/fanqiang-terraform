@@ -11,26 +11,24 @@ terraform {
   }
 }
 locals {
-  extends_path_component          = "extends"
-  extends_files                   = ["docker-compose.override.yml", "fluent-bit-parsers.conf", "fluent-bit.conf"]
-  s3_proxy_artifacts_extends_path = "${var.s3.proxy_artifacts_path}/${local.extends_path_component}"
+  extends_files = ["docker-compose.fluentbit.yml", "fluent-bit-parsers.conf", "fluent-bit.conf"]
 }
 resource "aws_s3_bucket_object" "proxy_artifacts_extends_main" {
   for_each      = toset(local.extends_files)
   bucket        = var.s3.bucket
-  key           = "${local.s3_proxy_artifacts_extends_path}/${each.key}"
+  key           = "${var.s3.proxy_artifacts_path}/${each.key}"
   force_destroy = true
   source        = "${path.module}/${each.key}"
 }
 resource "aws_s3_bucket_object" "proxy_artifacts_extends_credentials" {
   bucket         = var.s3.bucket
-  key            = "${local.s3_proxy_artifacts_extends_path}/credentials.json"
+  key            = "${var.s3.proxy_artifacts_path}/credentials.json"
   force_destroy  = true
   content_base64 = google_service_account_key.default.private_key
 }
 resource "aws_s3_bucket_object" "proxy_artifacts_extends_env" {
   bucket        = var.s3.bucket
-  key           = "${local.s3_proxy_artifacts_extends_path}/fluent-bit.env"
+  key           = "${var.s3.proxy_artifacts_path}/fluent-bit.env"
   force_destroy = true
   content       = <<EOT
     DATASET_ID=${var.dataset_id}
