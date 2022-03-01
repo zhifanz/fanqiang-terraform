@@ -1,15 +1,12 @@
-variable "dataset_id" {
-  type = string
-}
-variable "table_id" {
-  type = string
-}
 variable "service_account_id" {
   type = string
 }
-variable "s3" {
+variable "s3_bucket" {
+  type = string
+}
+variable "bigquery" {
   type = object({
-    bucket               = string
-    proxy_artifacts_path = string
+    dataset_id = string
+    table_id   = string
   })
 }

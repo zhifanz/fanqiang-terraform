@@ -7,7 +7,7 @@ terraform {
   }
 }
 locals {
-  artifacts_root_path = "proxy"
+  artifacts_root_path = "proxy/common"
 }
 resource "aws_s3_bucket" "default" {
   bucket        = var.bucket
@@ -28,9 +28,7 @@ resource "aws_s3_bucket_object" "docker_compose_file" {
   bucket        = aws_s3_bucket.default.bucket
   key           = "${local.artifacts_root_path}/docker-compose.yml"
   force_destroy = true
-  content = templatefile("${path.module}/docker-compose.yml.tpl", {
-    port = var.shadowsocks.server_port
-  })
+  source        = "${path.module}/docker-compose.yml"
 }
 resource "aws_iam_user" "default" {
   name          = var.agent_user

@@ -17,11 +17,8 @@
     exclude log .+
 
 [OUTPUT]
-    name stdout
-    match *
-
-[OUTPUT]
     name bigquery
     match *
-    dataset_id ${DATASET_ID}
-    table_id ${TABLE_ID}
+    skip_invalid_rows on
+    dataset_id ${bigquery.dataset_id}
+    table_id ${bigquery.table_id}

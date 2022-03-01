@@ -63,9 +63,8 @@ module "proxy_instance" {
   port                  = local.proxy.port
   agent_user_access_key = module.common.agent_access_key
   artifacts = {
-    root_uri              = module.common.artifacts.root_uri
-    compose_file          = module.common.artifacts.compose_file
-    compose_override_file = var.rule_analysis_project != null ? module.rules[0].compose_override_file : null
+    common_uri  = module.common.artifacts_uri
+    extends_uri = var.rule_analysis_project != null ? module.rules[0].artifacts_uri : null
   }
   public_key = var.public_key
 }
@@ -76,9 +75,8 @@ module "proxy_instance_ap" {
   port                  = local.proxy.port
   agent_user_access_key = module.common.agent_access_key
   artifacts = {
-    root_uri              = module.common.artifacts.root_uri
-    compose_file          = module.common.artifacts.compose_file
-    compose_override_file = null
+    common_uri  = module.common.artifacts_uri
+    extends_uri = null
   }
   public_key = var.public_key
   providers = {
@@ -92,9 +90,8 @@ module "proxy_instance_eu" {
   port                  = local.proxy.port
   agent_user_access_key = module.common.agent_access_key
   artifacts = {
-    root_uri              = module.common.artifacts.root_uri
-    compose_file          = module.common.artifacts.compose_file
-    compose_override_file = null
+    common_uri  = module.common.artifacts_uri
+    extends_uri = null
   }
   public_key = var.public_key
   providers = {
@@ -118,18 +115,14 @@ module "tunnel" {
   s3                   = module.common.s3
 }
 module "rules" {
-  count              = var.rule_analysis_project != null ? 1 : 0
-  source             = "./modules/rules"
-  dataset_id         = "fanqiang"
-  table_id           = "internet_access_events"
-  service_account_id = "lightsail-fluentbit"
-  s3 = {
-    bucket               = var.bucket
-    proxy_artifacts_path = module.common.artifacts.root_path
+  count  = var.rule_analysis_project != null ? 1 : 0
+  source = "./modules/rules"
+  bigquery = {
+    dataset_id = "fanqiang"
+    table_id   = "internet_access_events"
   }
-  depends_on = [
-    module.common
-  ]
+  service_account_id = "lightsail-fluentbit"
+  s3_bucket          = module.common.s3.bucket
 }
 module "clash" {
   source = "./modules/clash"

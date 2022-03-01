@@ -11,29 +11,28 @@ terraform {
   }
 }
 locals {
-  extends_files = ["docker-compose.fluentbit.yml", "fluent-bit-parsers.conf", "fluent-bit.conf"]
+  artifacts_root_path = "proxy/extends"
 }
 resource "aws_s3_bucket_object" "proxy_artifacts_extends_main" {
-  for_each      = toset(local.extends_files)
-  bucket        = var.s3.bucket
-  key           = "${var.s3.proxy_artifacts_path}/${each.key}"
+  for_each      = toset(["docker-compose.override.yml", "fluent-bit-parsers.conf"])
+  bucket        = var.s3_bucket
+  key           = "${local.artifacts_root_path}/${each.key}"
   force_destroy = true
   source        = "${path.module}/${each.key}"
 }
+resource "aws_s3_bucket_object" "fluentbit_conf" {
+  bucket        = var.s3_bucket
+  key           = "${local.artifacts_root_path}/fluent-bit.conf"
+  force_destroy = true
+  content = templatefile("${path.module}/fluent-bit.conf.tpl", {
+    bigquery = var.bigquery
+  })
+}
 resource "aws_s3_bucket_object" "proxy_artifacts_extends_credentials" {
-  bucket         = var.s3.bucket
-  key            = "${var.s3.proxy_artifacts_path}/credentials.json"
+  bucket         = var.s3_bucket
+  key            = "${local.artifacts_root_path}/credentials.json"
   force_destroy  = true
   content_base64 = google_service_account_key.default.private_key
-}
-resource "aws_s3_bucket_object" "proxy_artifacts_extends_env" {
-  bucket        = var.s3.bucket
-  key           = "${var.s3.proxy_artifacts_path}/fluent-bit.env"
-  force_destroy = true
-  content       = <<EOT
-    DATASET_ID=${var.dataset_id}
-    TABLE_ID=${var.table_id}
-  EOT
 }
 resource "google_service_account" "default" {
   account_id = var.service_account_id
@@ -42,7 +41,7 @@ resource "google_service_account_key" "default" {
   service_account_id = google_service_account.default.name
 }
 resource "google_bigquery_dataset" "default" {
-  dataset_id                  = var.dataset_id
+  dataset_id                  = var.bigquery.dataset_id
   delete_contents_on_destroy  = true
   default_table_expiration_ms = null
   access {
@@ -52,7 +51,7 @@ resource "google_bigquery_dataset" "default" {
 }
 resource "google_bigquery_table" "default" {
   dataset_id          = google_bigquery_dataset.default.dataset_id
-  table_id            = var.table_id
+  table_id            = var.bigquery.table_id
   expiration_time     = null
   deletion_protection = false
   schema = jsonencode([
@@ -65,11 +64,11 @@ resource "google_bigquery_table" "default" {
       type = "INT64"
       mode = "REQUIRED"
       }, {
-      name = "date"
+      name = "access_timestamp"
       type = "TIMESTAMP"
       mode = "REQUIRED"
     }
   ])
-  clustering = ["date"]
+  clustering = ["access_timestamp"]
 }
 

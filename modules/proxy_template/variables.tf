@@ -12,8 +12,7 @@ variable "agent_user_access_key" {
 }
 variable "artifacts" {
   type = object({
-    root_uri              = string
-    compose_file          = string
-    compose_override_file = string
+    common_uri  = string
+    extends_uri = string
   })
 }
