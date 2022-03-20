@@ -8,8 +8,13 @@ terraform {
       source  = "hashicorp/google"
       version = "4.10.0"
     }
+    archive = {
+      source  = "hashicorp/archive"
+      version = "2.2.0"
+    }
   }
 }
+
 locals {
   artifacts_root_path = "proxy/extends"
 }
@@ -34,8 +39,23 @@ resource "aws_s3_bucket_object" "proxy_artifacts_extends_credentials" {
   force_destroy  = true
   content_base64 = google_service_account_key.default.private_key
 }
+data "google_project" "default" {
+}
+resource "google_app_engine_application" "default" {
+  project       = data.google_project.default.project_id
+  location_id   = "us-central"
+  database_type = "CLOUD_FIRESTORE"
+}
+resource "google_project_service" "iam" {
+  service                    = "iam.googleapis.com"
+  disable_dependent_services = true
+  disable_on_destroy         = true
+}
 resource "google_service_account" "default" {
   account_id = var.service_account_id
+  depends_on = [
+    google_project_service.iam
+  ]
 }
 resource "google_service_account_key" "default" {
   service_account_id = google_service_account.default.name
@@ -71,4 +91,62 @@ resource "google_bigquery_table" "default" {
   ])
   clustering = ["access_timestamp"]
 }
-
+data "archive_file" "fra" {
+  type        = "zip"
+  output_path = "${path.module}/files/fra.zip"
+  source_dir  = "${path.module}/cloudfunction"
+}
+resource "google_storage_bucket" "default" {
+  name          = var.cloud_function.bucket
+  force_destroy = true
+  location      = "US-CENTRAL1"
+}
+resource "google_storage_bucket_object" "fra_archive" {
+  name   = "fra.zip"
+  bucket = google_storage_bucket.default.name
+  source = data.archive_file.fra.output_path
+}
+resource "google_project_service" "cloudfunctions" {
+  service                    = "cloudfunctions.googleapis.com"
+  disable_dependent_services = true
+  disable_on_destroy         = true
+}
+resource "google_cloudfunctions_function" "default" {
+  name                  = var.cloud_function.name
+  runtime               = "python39"
+  timeout               = 540
+  ingress_settings      = "ALLOW_INTERNAL_ONLY"
+  entry_point           = "handle_event"
+  source_archive_bucket = google_storage_bucket.default.name
+  source_archive_object = google_storage_bucket_object.fra_archive.name
+  event_trigger {
+    event_type = "google.pubsub.topic.publish"
+    resource   = google_pubsub_topic.default.name
+  }
+  depends_on = [google_project_service.cloudfunctions]
+}
+resource "google_project_service" "cloudscheduler" {
+  service                    = "cloudscheduler.googleapis.com"
+  disable_dependent_services = true
+  disable_on_destroy         = true
+}
+resource "google_cloud_scheduler_job" "default" {
+  name     = var.cloud_function.scheduler
+  schedule = "0 0 * * *"
+  pubsub_target {
+    topic_name = google_pubsub_topic.default.id
+    data       = base64encode("{}")
+  }
+  depends_on = [google_project_service.cloudscheduler]
+}
+resource "google_project_service" "pubsub" {
+  service                    = "pubsub.googleapis.com"
+  disable_dependent_services = true
+  disable_on_destroy         = true
+}
+resource "google_pubsub_topic" "default" {
+  name = var.cloud_function.topic
+  depends_on = [
+    google_project_service.pubsub
+  ]
+}

@@ -12,7 +12,13 @@ terraform {
       source  = "hashicorp/google"
       version = "4.10.0"
     }
+    archive = {
+      source  = "hashicorp/archive"
+      version = "2.2.0"
+    }
   }
+}
+provider "archive" {
 }
 provider "aws" {
   region = "us-east-1"
@@ -29,6 +35,10 @@ provider "alicloud" {
   region = var.client_region
 }
 provider "google" {
+  project = var.rule_analysis_project
+  region  = "us-central1"
+}
+provider "google-beta" {
   project = var.rule_analysis_project
   region  = "us-central1"
 }
@@ -115,14 +125,20 @@ module "tunnel" {
   s3                   = module.common.s3
 }
 module "rules" {
-  count  = var.rule_analysis_project != null ? 1 : 0
-  source = "./modules/rules"
+  count              = var.rule_analysis_project != null ? 1 : 0
+  source             = "./modules/rules"
+  s3_bucket          = module.common.s3.bucket
+  service_account_id = "lightsail-fluentbit"
   bigquery = {
     dataset_id = "fanqiang"
     table_id   = "internet_access_events"
   }
-  service_account_id = "lightsail-fluentbit"
-  s3_bucket          = module.common.s3.bucket
+  cloud_function = {
+    bucket    = "fanqiang-cloud-function-artifacts"
+    name      = "fanqiang-rule-analysis"
+    topic     = "fanqiang-rule-analysis-schedule"
+    scheduler = "fanqiang-rule-analysis-scheduler"
+  }
 }
 module "clash" {
   source = "./modules/clash"
